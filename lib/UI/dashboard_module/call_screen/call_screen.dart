@@ -10,11 +10,11 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:get/get_core/src/get_main.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:ed_screen_recorder/ed_screen_recorder.dart';
-
-
+import 'package:share_plus/share_plus.dart';
 
 import '../../../data/controllers/auth_controller/auth_controller.dart';
 import '../../../values/constants.dart';
@@ -41,18 +41,16 @@ class _MyAppState extends State<CallScreen> {
   int? _remoteUid;
   bool _localUserJoined = false;
   late RtcEngine _engine;
-  EdScreenRecorder? screenRecorder;
+  EdScreenRecorder screenRecorder=EdScreenRecorder();
   Map<String, dynamic>? _response;
 
   @override
   void initState() {
     super.initState();
-    screenRecorder = EdScreenRecorder();
-
-    initAgora();
-
+    //screenRecorder = EdScreenRecorder();
     startRecord();
 
+    initAgora();
 
   }
 
@@ -120,8 +118,9 @@ class _MyAppState extends State<CallScreen> {
 
     _dispose();
   }
+
   Future<void> startRecord() async {
-    Directory? tempDir =  Directory.systemTemp;
+    Directory? tempDir = await getApplicationDocumentsDirectory();
     String? tempPath = tempDir.path;
 
     try {
@@ -137,136 +136,150 @@ class _MyAppState extends State<CallScreen> {
       });
       print("response $_response");
     } on PlatformException {
-      kDebugMode ? debugPrint("Error: An error occurred while starting the recording!") : null;
+      kDebugMode
+          ? debugPrint("Error: An error occurred while starting the recording!")
+          : null;
     }
   }
+
   Future<void> _dispose() async {
+    //await stopRecord();
     await _engine.leaveChannel();
     await _engine.release();
     // var frames= await controller.exporter.exportFrames();
     // print("frames $frames");
     // controller.stop();
-   // Get.find<HomeController>().uploadFramesToFirebase(frames);
-    stopRecord();
+    // Get.find<HomeController>().uploadFramesToFirebase(frames);
   }
+
   Future<void> stopRecord() async {
     try {
-      var stopResponse = await screenRecorder?.stopRecord();
-      setState(() {
-        _response = stopResponse;
+      print("Stoping recording");
+    await screenRecorder.stopRecord().then((value) {
+      print("stoping value   $value");
+    }).onError((error, stackTrace) {
+        print("stoping error $error");
+
       });
+      // setState(() {
+      //   _response = stopResponse;
+      // });
+      Share.shareXFiles([XFile(_response!["file"])]);
       print("response stop $_response");
     } on PlatformException {
-      kDebugMode ? debugPrint("Error: An error occurred while stopping recording.") : null;
+      kDebugMode
+          ? debugPrint("Error: An error occurred while stopping recording.")
+          : null;
     }
   }
+
   // Create UI with local view and remote view
   @override
   Widget build(BuildContext context) {
     print("toke   ${widget.token}");
-    return GetBuilder<HomeController>(
-      builder: (contr) {
-        return Scaffold(
-          // appBar: AppBar(
-          //   title: const Text('Agora Video Call'),
-          // ),
-          body: authController.loginAsA.value == Constants.host
-              ? Center(
-                  child: _localUserJoined
-                      ? AgoraVideoView(
-                    controller: VideoViewController(
-                      rtcEngine: _engine,
-                      canvas: VideoCanvas(uid: 0),
-                    ),
-                  )
-                      : const CircularProgressIndicator(),
-                )
-              : Stack(
-                  children: [
-                    Center(
-                      child: _remoteVideo(),
-                    ),
-                    Align(
-                      alignment: Alignment.topLeft,
-                      child: SizedBox(
-                        width: 100,
-                        height: 150,
-                        child: Center(
-                          child: _localUserJoined
-                              ? contr.muteVideo.value?SizedBox():AgoraVideoView(
-                                  controller: VideoViewController(
-                                    rtcEngine: _engine,
-                                    canvas: VideoCanvas(uid: 0),
-                                  ),
-                                )
-                              : const CircularProgressIndicator(),
+    return GetBuilder<HomeController>(builder: (contr) {
+      return Scaffold(
+        // appBar: AppBar(
+        //   title: const Text('Agora Video Call'),
+        // ),
+        body: authController.loginAsA.value == Constants.host
+            ? Center(
+                child: _localUserJoined
+                    ? AgoraVideoView(
+                        controller: VideoViewController(
+                          rtcEngine: _engine,
+                          canvas: VideoCanvas(uid: 0),
                         ),
+                      )
+                    : const CircularProgressIndicator(),
+              )
+            : Stack(
+                children: [
+                  Center(
+                    child: _remoteVideo(),
+                  ),
+                  Align(
+                    alignment: Alignment.topLeft,
+                    child: SizedBox(
+                      width: 100,
+                      height: 150,
+                      child: Center(
+                        child: _localUserJoined
+                            ? contr.muteVideo.value
+                                ? SizedBox()
+                                : AgoraVideoView(
+                                    controller: VideoViewController(
+                                      rtcEngine: _engine,
+                                      canvas: VideoCanvas(uid: 0),
+                                    ),
+                                  )
+                            : const CircularProgressIndicator(),
                       ),
                     ),
-                  ],
-                ),
-          floatingActionButton: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              FloatingActionButton(
-                onPressed: () {
-                  contr.muteAudio.value =
-                      !contr.muteAudio.value;
-                  _engine.muteLocalAudioStream(
-                      contr.muteAudio.value);
-                  contr.update();
-                },
-                backgroundColor: Colors.white,
-                child: Obx(() => Icon(
-                      contr.muteAudio.value
-                          ? Icons.mic_off_rounded
-                          : Icons.mic,
-                      color: Colors.black,
-                    )),
+                  ),
+                ],
               ),
-              FloatingActionButton(
-                onPressed: () {
-                  contr.muteVideo.value =
-                      !contr.muteVideo.value;
-                  _engine.muteLocalAudioStream(
-                      contr.muteVideo.value);
-                  contr.update();
-                },
-                backgroundColor: Colors.white,
-                child: Obx(() => Icon(
-                      contr.muteVideo.value
-                          ? Icons.videocam_off
-                          : Icons.videocam,
-                      color: Colors.black,
-                    )),
+        floatingActionButton: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: [
+            FloatingActionButton(
+              onPressed: () {
+                contr.muteAudio.value = !contr.muteAudio.value;
+                _engine.muteLocalAudioStream(contr.muteAudio.value);
+                contr.update();
+              },
+              backgroundColor: Colors.white,
+              child: Obx(() => Icon(
+                    contr.muteAudio.value ? Icons.mic_off_rounded : Icons.mic,
+                    color: Colors.black,
+                  )),
+            ),
+            FloatingActionButton(
+              onPressed: () {
+                contr.muteVideo.value = !contr.muteVideo.value;
+                _engine.muteLocalAudioStream(contr.muteVideo.value);
+                contr.update();
+              },
+              backgroundColor: Colors.white,
+              child: Obx(() => Icon(
+                    contr.muteVideo.value ? Icons.videocam_off : Icons.videocam,
+                    color: Colors.black,
+                  )),
+            ),
+            FloatingActionButton(
+              onPressed: () async {
+                ChatOptions options =
+                    ChatOptions(appKey: Constants.chatAppKey, autoLogin: false);
+                await ChatClient.getInstance.init(options);
+                Get.to(() => ChatScreen(
+                      title: "Chat",
+                      remoteId: _remoteUid.toString(),
+                      channelName: widget.channelName,
+                      currentUserId: "0",
+                      token: widget.token,
+                    ));
+              },
+              backgroundColor: Colors.white,
+              child: const Icon(
+                Icons.more_vert,
+                color: Colors.black,
               ),
-              FloatingActionButton(
-                onPressed: () async {
-                  ChatOptions options = ChatOptions(appKey: Constants.chatAppKey, autoLogin: false);
-                  await ChatClient.getInstance.init(options);
-                  Get.to(()=>ChatScreen(title: "Chat", remoteId: _remoteUid.toString(), channelName: widget.channelName,currentUserId:"0",token: widget.token,));
-                },
-                backgroundColor: Colors.white,
-                child: const Icon(
-                  Icons.more_vert,
-                  color: Colors.black,
-                ),
+            ),
+            FloatingActionButton(
+              onPressed: () async {
+                await stopRecord();
+                //Get.back();
+              },
+              child: Icon(
+                Icons.call_end,
+                color: Colors.white,
               ),
-              FloatingActionButton(
-                onPressed: () {
-                  Get.back();
-                },
-                child: Icon(
-                  Icons.call_end,
-                  color: Colors.white,
-                ),
-                backgroundColor: Colors.red,
-              ),
-            ],
-          ),
-        );
-      }
-    );
+              backgroundColor: Colors.red,
+            ),
+          ],
+        ),
+      );
+    });
   }
 
   // Display remote user's video

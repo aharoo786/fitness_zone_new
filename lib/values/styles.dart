@@ -34,7 +34,6 @@ class Styles {
 
         )),
     scrollbarTheme: ScrollbarThemeData(
-        isAlwaysShown: true,
         showTrackOnHover: true,
         interactive: true,
         trackColor: MaterialStateProperty.all(MyColors.green100),

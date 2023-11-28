@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:screen_protector/screen_protector.dart';
 import 'package:uni_links/uni_links.dart';
 
 import '/helper/get_di.dart' as di;
@@ -66,7 +67,7 @@ Future<void> initUniLinks() async {
   // ... check initialLink
 
   // Attach a listener to the stream
-   linkStream.listen((String? link) {
+  linkStream.listen((String? link) {
     if (link != null) {
       print(link);
       Get.find<HomeController>().generatedToken = link.split("/").last;

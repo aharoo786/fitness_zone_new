@@ -6,6 +6,7 @@ import 'package:fitnesss_app/values/constants.dart';
 import 'package:fitnesss_app/widgets/toasts.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:screen_protector/screen_protector.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../GetServices/CheckConnectionService.dart';
 import 'dart:io';
@@ -290,6 +291,15 @@ class AuthController extends GetxController implements GetxService {
     return userModel;
   }
 
+  ///protecting user security from taking screenshot or recording
+  preventingScreenshotOrRecording(UserModel userModel) async {
+    if (!userModel.screenShot || !userModel.recording) {
+      await ScreenProtector.protectDataLeakageOn();
+    } else {
+      await ScreenProtector.protectDataLeakageOff();
+    }
+  }
+
   sessionCheck() async {
     await connectionService.checkConnection().then((value) async {
       if (!value) {
@@ -305,6 +315,7 @@ class AuthController extends GetxController implements GetxService {
           sharedPreferences.setBool(Constants.login, true);
           sharedPreferences.setString(Constants.userId, logInUser!.userId);
           loginAsA.value = logInUser!.type;
+         preventingScreenshotOrRecording(logInUser!);
           Get.offAll(() => BottomBarScreen());
           //   CustomToast.successToast(msg: "Login Successfully");
         }
@@ -335,6 +346,7 @@ class AuthController extends GetxController implements GetxService {
           sharedPreferences.setBool(Constants.isGuest, false);
           sharedPreferences.setString(Constants.userId, logInUser!.userId);
           loginAsA.value = logInUser!.type;
+          preventingScreenshotOrRecording(logInUser!);
           Get.offAll(() => BottomBarScreen());
           CustomToast.successToast(msg: "Login Successfully");
         }
