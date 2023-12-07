@@ -48,4 +48,5 @@ analysis_options.yaml
 .metadata
 pubspec.lock
 .idea
-
+build
+.dart_tool

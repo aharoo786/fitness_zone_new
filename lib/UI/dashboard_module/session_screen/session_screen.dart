@@ -78,46 +78,40 @@ class SessionScreen extends StatelessWidget {
                 SizedBox(
                   height: 60.h,
                 ),
-             CustomButton(
-                        text: authController.loginAsA.value == Constants.host
-                            ? "Start"
-                            : "Join",
-                        onPressed: () async {
-                          if (channelName.text.isEmpty) {
-                            CustomToast.failToast(
-                                msg: "Please provide channel name to join");
-                          } else {
-                            await _handleCameraAndMic(Permission.camera);
-                            await _handleCameraAndMic(Permission.microphone);
-                            homeController.getAgoraToken(channelName.text);
-                            Get.to(() => CallScreen(
-                                  channelName: channelName.text,
-                                   token: homeController.generatedToken!,
-                                  userId: Get.find<AuthController>().logInUser!.userId,
-                                ));
-                          }
-                        }),
+                CustomButton(
+                    text: authController.loginAsA.value == Constants.host
+                        ? "Start"
+                        : "Join",
+                    onPressed: () async {
+                      if (channelName.text.isEmpty) {
+                        CustomToast.failToast(
+                            msg: "Please provide channel name to join");
+                      } else {
+                        await _handleCameraAndMic(Permission.camera);
+                        await _handleCameraAndMic(Permission.microphone);
+                        homeController.getAgoraToken(channelName.text);
+                        Get.to(() => CallScreen(
+                              channelName: channelName.text,
+                              token: homeController.generatedToken!,
+                              userId:
+                                  Get.find<AuthController>().logInUser!.userId,
+                            ));
+                      }
+                    }),
                 SizedBox(
                   height: 20.h,
                 ),
-               // CustomButton(
-               //          text: homeController.generatedToken == null
-               //              ? "Create channel"
-               //              : "Share",
-               //          onPressed: () async {
-               //            if (channelName.text.isEmpty) {
-               //              CustomToast.failToast(
-               //                  msg: "Please provide channel name to join");
-               //            } else {
-               //              if (homeController.generatedToken == null) {
-               //                homeController.getAgoraToken(channelName.text);
-               //              } else {
-               //                Share.share(
-               //                    "Channel Name: ${channelName.text}\n${Uri.parse("https://fominobackend.myace.app/${channelName.text}/${homeController.generatedToken}")}");
-               //              }
-               //            }
-               //          })
 
+                GetBuilder<HomeController>(builder: (c) {
+                  return homeController.videoFile == null
+                      ? SizedBox()
+                      : CustomButton(
+                          text: "Upload session video",
+                          onPressed: () async {
+                            homeController.uploadBytesToFirebaseStorage(
+                                homeController.videoFile!.path);
+                          });
+                })
               ],
             ),
           ),

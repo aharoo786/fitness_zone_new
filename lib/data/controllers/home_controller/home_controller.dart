@@ -1,7 +1,14 @@
+import 'dart:convert';
+import 'dart:io';
 import 'dart:typed_data';
+import 'dart:ui';
+
 
 import 'package:agora_token_service/agora_token_service.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:fitnesss_app/data/controllers/auth_controller/auth_controller.dart';
@@ -14,6 +21,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../values/constants.dart';
 import '../../../widgets/toasts.dart';
+import 'package:http/http.dart';
 import '../../GetServices/CheckConnectionService.dart';
 import '../../models/measurement_model/measurement_model.dart';
 
@@ -29,6 +37,9 @@ class HomeController extends GetxController implements GetxService {
 
   ///Agora token
   String? generatedToken;
+
+  ///video frames
+  XFile? videoFile;
 
   ///Measurement controllers Weekly
   TextEditingController firstName = TextEditingController();
@@ -108,6 +119,40 @@ class HomeController extends GetxController implements GetxService {
     thighs.clear();
   }
 
+  recordSession(String channelName) async {
+    // Pseudo-code to start cloud recording (replace placeholders)
+    String appId = Constants.appID;
+    String appCertificate = "71a1aa7106d9447ba8e10ffcee0a2545";
+    String channelId = channelName;
+    String? token = await getAgoraToken(channelName);
+
+    String cloudRecordingApiUrl =
+        "https://api.agora.io/v1/apps/$appId/cloud_recording/resourceid";
+    Map<String, dynamic> requestData = {
+      "cname": channelId,
+      "uid": 0, // 0 indicates that the server will assign a UID
+      "clientRequest": {
+        "token": token,
+        "recordingConfig": {
+          "channelType": 1, // 0 for communication, 1 for live broadcast
+          "streamTypes": 2, // 2 for audio and video
+          "maxIdleTime": 30,
+        },
+        "subscribeUidGroup": 0, // 0 for all users in the channel
+      },
+    };
+
+// Send a request to start cloud recording
+// Use your preferred HTTP library to make the API request
+    var response = await post(Uri.parse(cloudRecordingApiUrl),
+        body: jsonEncode(requestData),
+        headers: {"Authorization": "Bearer $appCertificate"});
+
+// Parse the response and get the resourceId
+//     String resourceId = parseResourceId(response);
+    Get.log("response of api  ${response}");
+  }
+
   Future<String?> getAgoraToken(String channelName) async {
     const expirationInSeconds = 84600;
     final currentTimestamp = DateTime.now().millisecondsSinceEpoch ~/ 1000;
@@ -126,36 +171,29 @@ class HomeController extends GetxController implements GetxService {
     return token;
   }
 
-  Future<void> uploadFramesToFirebase(frames) async {
-    // Convert RawFrame instances to bytes (this is just an example)
-    Uint8List? byteData;
-    if (frames==null) {
-      print("frames nulll ");
-    } else {
-      List bytes = frames.map((frame) {
-        // Assuming frame is a RawFrame with an Image property
-        byteData = frame.image.buffer.asUint8List();
-        return byteData!.toList();
-      }).toList();
-    }
 
-    // Upload bytes to Firebase Storage
-    await uploadBytesToFirebaseStorage(byteData!);
-  }
 
-  Future<void> uploadBytesToFirebaseStorage(Uint8List bytes) async {
-    // Use Firebase Storage to upload bytes
-    // Replace 'yourStorageReference' with the appropriate reference in your Firebase Storage
-    // This might be something like "gs://your-project-id.appspot.com/path/to/file"
-    // or a reference obtained from Firebase Storage API
-    // Make sure to check the Firebase Storage documentation for your specific setup
+  Future<void> uploadBytesToFirebaseStorage(String path) async {
     final storageReference = FirebaseStorage.instance.ref('videos');
 
     // Create a reference to the file you want to upload
-    final fileReference = storageReference.child('firstVideo');
+    final fileReference =
+        storageReference.child('${DateTime.now().toIso8601String()}.mp4');
 
     // Upload the file to Firebase Storage
-    await fileReference.putData(bytes);
+    await fileReference.putFile(File(path)).then((p0) async {
+      print("uploaded   ${p0.ref.getDownloadURL()}");
+      String? url = await p0.ref.getDownloadURL();
+
+      await FirebaseFirestore.instance
+          .collection("sessionVideos")
+          .doc(DateTime.now().toIso8601String())
+          .set({"url": url});
+      Get.back();
+    }).onError((error, stackTrace) {
+      Get.back();
+      CustomToast.failToast(msg: "Upload fail,please try again");
+    });
 
     print('File uploaded to Firebase Storage!');
   }

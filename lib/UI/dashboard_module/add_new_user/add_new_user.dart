@@ -283,7 +283,7 @@ class AddNewUser extends StatelessWidget {
                       authController.monthSelected == true) {
                     CustomToast.failToast(msg: "Please select one ");
                   } else if (authController.daysSelected == false &&
-                      authController.monthSelected == false) {
+                      authController.monthSelected == false && !isMember) {
                     CustomToast.failToast(msg: "Please select days or month ");
                   } else {
                     Get.find<AuthController>().addingUserToFireStore(isMember);

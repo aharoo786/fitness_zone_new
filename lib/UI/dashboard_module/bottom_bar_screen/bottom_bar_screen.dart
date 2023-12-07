@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:get/get.dart';
+import 'package:get/get_core/src/get_main.dart';
 
+import '../../../data/controllers/auth_controller/auth_controller.dart';
 import '../../../values/my_colors.dart';
 import '../../../values/my_imgs.dart';
 import '../drawer_screen/dwarer_screen.dart';
@@ -61,7 +64,7 @@ class _BottomBarScreenState extends State<BottomBarScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-             "Hi, Abdullah" ,
+             "Hi, ${Get.find<AuthController>().logInUser!.fullName}" ,
               style: textTheme.headlineMedium!
                   .copyWith(fontWeight: FontWeight.w500, fontSize: 18.sp,color: Colors.white),
             ),

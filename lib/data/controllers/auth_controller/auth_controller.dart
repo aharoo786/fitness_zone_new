@@ -346,6 +346,8 @@ class AuthController extends GetxController implements GetxService {
           sharedPreferences.setBool(Constants.isGuest, false);
           sharedPreferences.setString(Constants.userId, logInUser!.userId);
           loginAsA.value = logInUser!.type;
+          passwordController.clear();
+          phoneNumberController.clear();
           preventingScreenshotOrRecording(logInUser!);
           Get.offAll(() => BottomBarScreen());
           CustomToast.successToast(msg: "Login Successfully");
