@@ -94,9 +94,14 @@ class _MyAppState extends State<CallScreen> {
     );
 
     await _engine.setClientRole(
-        role: authController.loginAsA.value == Constants.host
-            ? ClientRoleType.clientRoleBroadcaster
-            : ClientRoleType.clientRoleAudience);
+        role:
+
+            // authController.loginAsA.value == Constants.host
+            //     ?
+            ClientRoleType.clientRoleBroadcaster
+        // : ClientRoleType.clientRoleAudience
+
+        );
     await _engine.enableVideo();
     await _engine.startPreview();
     int randomNumber = Random().nextInt(100);
@@ -215,72 +220,103 @@ class _MyAppState extends State<CallScreen> {
           // appBar: AppBar(
           //   title: const Text('Agora Video Call'),
           // ),
-          body: authController.loginAsA.value == Constants.host
-              ? Stack(
-                  children: [
-
-                    Center(
-                      child: _localUserJoined
-                          ? contr.muteVideo.value
-                              ? Container(
-                                  padding: EdgeInsets.all(20),
-                                  color: Colors.black,
-                                  child: const Icon(
-                                    Icons.videocam_off,
-                                    color: Colors.white,
-                                  ),
-                                )
-                              : AgoraVideoView(
-                                  controller: VideoViewController(
-                                    rtcEngine: _engine,
-                                    canvas: VideoCanvas(uid: 0),
-                                  ),
-                                )
-                          : const CircularProgressIndicator(),
-                    ),
-                    SizedBox(
-                      height: 200,
-                      child: ListView.builder(
-                        padding: const EdgeInsets.only(top: 30,left: 20,right: 20),
-                        scrollDirection: Axis.horizontal,
-                        itemBuilder: (BuildContext context, int index) {
-                          return Container(
-                              width: 100,
-                              height: 150,
-                             //padding: EdgeInsets.all(50),
-                              child: _remoteVideoUser(participantList[index]));
-                        },
-                        itemCount: participantList.length,
-                      ),
-                    ),
-                  ],
-                )
-              : Stack(
-                  children: [
-                    Center(
-                      child: _remoteVideo(),
-                    ),
-                    Align(
-                      alignment: Alignment.topLeft,
-                      child: SizedBox(
-                        width: 100,
-                        height: 150,
-                        child: Center(
-                          child: _localUserJoined
-                              ? contr.muteVideo.value
-                                  ? SizedBox()
-                                  : AgoraVideoView(
-                                      controller: VideoViewController(
-                                        rtcEngine: _engine,
-                                        canvas: VideoCanvas(uid: 0),
-                                      ),
-                                    )
-                              : const CircularProgressIndicator(),
-                        ),
-                      ),
-                    ),
-                  ],
+          body: GridView.builder(
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2, // Number of children in each row
+                crossAxisSpacing: 8.0, // Horizontal spacing between children
+                mainAxisSpacing: 8.0,
+                childAspectRatio: 0.9 // Vertical spacing between children
                 ),
+            itemCount: participantList.length + 1,
+            itemBuilder: (context, index) {
+              return index == 0
+                  ? _localUserJoined
+                      ? contr.muteVideo.value
+                          ? Container(
+                              //padding: EdgeInsets.all(20),
+                              color: Colors.black,
+                              child: const Icon(
+                                Icons.videocam_off,
+                                color: Colors.white,
+                              ),
+                            )
+                          : AgoraVideoView(
+                              controller: VideoViewController(
+                                rtcEngine: _engine,
+                                canvas: VideoCanvas(uid: 0),
+                              ),
+                            )
+                      : const CircularProgressIndicator()
+                  : _remoteVideoUser(participantList[index]);
+            },
+          ),
+
+          // authController.loginAsA.value == Constants.host
+          //     ? Stack(
+          //         children: [
+          //           Center(
+          //             child: _localUserJoined
+          //                 ? contr.muteVideo.value
+          //                     ? Container(
+          //                         padding: EdgeInsets.all(20),
+          //                         color: Colors.black,
+          //                         child: const Icon(
+          //                           Icons.videocam_off,
+          //                           color: Colors.white,
+          //                         ),
+          //                       )
+          //                     : AgoraVideoView(
+          //                         controller: VideoViewController(
+          //                           rtcEngine: _engine,
+          //                           canvas: VideoCanvas(uid: 0),
+          //                         ),
+          //                       )
+          //                 : const CircularProgressIndicator(),
+          //           ),
+          //           SizedBox(
+          //             height: 200,
+          //             child: ListView.builder(
+          //               padding:
+          //                   const EdgeInsets.only(top: 30, left: 20, right: 20),
+          //               scrollDirection: Axis.horizontal,
+          //               itemBuilder: (BuildContext context, int index) {
+          //                 return Container(
+          //                     width: 100,
+          //                     height: 150,
+          //                     //padding: EdgeInsets.all(50),
+          //                     child: _remoteVideoUser(participantList[index]));
+          //               },
+          //               itemCount: participantList.length,
+          //             ),
+          //           ),
+          //         ],
+          //       )
+          //     : Stack(
+          //         children: [
+          //           Center(
+          //             child: _remoteVideo(),
+          //           ),
+          //           Align(
+          //             alignment: Alignment.topLeft,
+          //             child: SizedBox(
+          //               width: 100,
+          //               height: 150,
+          //               child: Center(
+          //                 child: _localUserJoined
+          //                     ? contr.muteVideo.value
+          //                         ? SizedBox()
+          //                         : AgoraVideoView(
+          //                             controller: VideoViewController(
+          //                               rtcEngine: _engine,
+          //                               canvas: VideoCanvas(uid: 0),
+          //                             ),
+          //                           )
+          //                     : const CircularProgressIndicator(),
+          //               ),
+          //             ),
+          //           ),
+          //         ],
+          //       ),
           floatingActionButton: Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
