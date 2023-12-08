@@ -2,8 +2,10 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:math';
 import 'package:agora_rtc_engine/agora_rtc_engine.dart';
+import 'package:camera/camera.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:fitnesss_app/data/controllers/home_controller/home_controller.dart';
+import 'package:fitnesss_app/widgets/toasts.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -22,11 +24,13 @@ class CallScreen extends StatefulWidget {
       {Key? key,
       required this.channelName,
       required this.token,
-      required this.userId})
+      required this.userId,
+      required this.camera})
       : super(key: key);
   final String channelName;
   final String token;
   final String userId;
+  final CameraDescription camera;
 
   @override
   State<CallScreen> createState() => _MyAppState();
@@ -41,15 +45,24 @@ class _MyAppState extends State<CallScreen> {
   bool recordingStart = false;
   List participantList = [];
   late RtcEngine _engine;
-
+  late CameraController _controller;
+  late Future<void> _initializeControllerFuture;
   Map<String, dynamic>? _response;
 
   @override
   void initState() {
     super.initState();
     // Get.find<HomeController>().recordSession(widget.channelName);();
-    // startRecord();
+    // startRecord()
+    // ;
+    _controller = CameraController(
+      widget.camera,
+      ResolutionPreset.high,
+    );
+
+    //_initializeControllerFuture = _controller.initialize();
     initAgora();
+    _controller.initialize();
   }
 
   Future<void> initAgora() async {
@@ -84,6 +97,7 @@ class _MyAppState extends State<CallScreen> {
           debugPrint("remote user $remoteUid left channel");
           setState(() {
             _remoteUid = null;
+            participantList.remove(remoteUid);
           });
         },
         onTokenPrivilegeWillExpire: (RtcConnection connection, String token) {
@@ -191,6 +205,7 @@ class _MyAppState extends State<CallScreen> {
     if (Get.find<AuthController>().loginAsA.value == Constants.host) {
       await deleteCollection();
     }
+    _controller.dispose();
 
     // var frames= await controller.exporter.exportFrames();
     // print("frames $frames");
@@ -240,14 +255,45 @@ class _MyAppState extends State<CallScreen> {
                                 color: Colors.white,
                               ),
                             )
-                          : AgoraVideoView(
-                              controller: VideoViewController(
-                                rtcEngine: _engine,
-                                canvas: VideoCanvas(uid: 0),
+                          // : Get.find<AuthController>().logInUser!.type ==
+                          //         Constants.host
+                          //     ? FutureBuilder<void>(
+                          //         future: _initializeControllerFuture,
+                          //         builder: (context, snapshot) {
+                          //           if (snapshot.connectionState ==
+                          //               ConnectionState.done) {
+                          //             return CameraPreview(
+                          //               _controller,
+                          //               child: AgoraVideoView(
+                          //                 controller: VideoViewController(
+                          //                   rtcEngine: _engine,
+                          //                   canvas: VideoCanvas(uid: 0),
+                          //                 ),
+                          //               ),
+                          //              );
+                          //           } else {
+                          //             return Center(
+                          //                 child: CircularProgressIndicator());
+                          //           }
+                          //         },
+                          //       )
+                          : CameraPreview(
+                              _controller,
+                              child: AgoraVideoView(
+                                controller: VideoViewController(
+                                  rtcEngine: _engine,
+                                  canvas: VideoCanvas(uid: 0),
+                                ),
                               ),
                             )
+                      // AgoraVideoView(
+                      //                     controller: VideoViewController(
+                      //                       rtcEngine: _engine,
+                      //                       canvas: VideoCanvas(uid: 0),
+                      //                     ),
+                      //                   )
                       : const CircularProgressIndicator()
-                  : _remoteVideoUser(participantList[index]);
+                  : _remoteVideoUser(participantList[index - 1]);
             },
           ),
 
@@ -360,6 +406,31 @@ class _MyAppState extends State<CallScreen> {
               ),
               FloatingActionButton(
                 onPressed: () async {
+                  try {
+                    await _controller.initialize();
+
+                    await _controller.startVideoRecording();
+
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Recording started'),
+                      ),
+                    );
+
+                    // Wait for a few seconds, then stop recording
+                    await Future.delayed(Duration(seconds: 5));
+
+                    await _controller.stopVideoRecording().then((value) {
+                      Get.log("path1234   $value");
+                    });
+                  } catch (e) {
+                    print('Error: $e');
+                  }
+                },
+                child: Icon(Icons.camera),
+              ),
+              FloatingActionButton(
+                onPressed: () async {
                   Get.defaultDialog(
                       title: "End Session",
                       content: Text("Are you sure you want to end session?"),
@@ -376,6 +447,25 @@ class _MyAppState extends State<CallScreen> {
                 ),
                 backgroundColor: Colors.red,
               ),
+              FloatingActionButton(
+                onPressed: () async {
+                  // Get.defaultDialog(
+                  //     title: "End Session",
+                  //     content: Text("Are you sure you want to end session?"),
+                  //     onCancel: () async {},
+                  //     onConfirm: () async {
+                  //       await _dispose();
+                  //       Get.back();
+                  //       Get.back();
+                  //     });
+                  _toggleCamera();
+                },
+                child: Icon(
+                  Icons.cameraswitch_sharp,
+                  color: Colors.white,
+                ),
+                backgroundColor: Colors.red,
+              ),
             ],
           ),
         ),
@@ -383,9 +473,25 @@ class _MyAppState extends State<CallScreen> {
     });
   }
 
+  Future<void> _toggleCamera() async {
+    final cameras = await availableCameras();
+    print("cameras  $cameras");
+    final newCamera = cameras
+        .firstWhere((element) => element.name != _controller.description.name);
+    //final newCamera = cameras[newCameraIndex];
+
+    // await _controller.dispose();
+    // _controller = CameraController(newCamera, ResolutionPreset.high);
+
+    // await _controller.initialize();
+    _controller.setDescription(newCamera);
+
+    setState(() {});
+  }
+
   // Display remote user's video
   Widget _remoteVideo() {
-    print("remotid $_remoteUid");
+    print("se $_remoteUid");
     if (_remoteUid != null) {
       return AgoraVideoView(
         controller: VideoViewController.remote(
@@ -419,4 +525,140 @@ class _MyAppState extends State<CallScreen> {
       );
     }
   }
+
+  // Future<void> _initializeCameraController(
+  //     CameraDescription cameraDescription) async {
+  //   final CameraController cameraController = CameraController(
+  //      CameraDescription(name: 'Fitness Zone', lensDirection: CameraLensDirection.front, sensorOrientation: 0),
+  //     kIsWeb ? ResolutionPreset.max : ResolutionPreset.medium,
+  //     enableAudio: enableAudio,
+  //     imageFormatGroup: ImageFormatGroup.jpeg,
+  //   );
+  //
+  //   controller = cameraController;
+  //
+  //   // If the controller is updated then update the UI.
+  //   cameraController.addListener(() {
+  //     if (mounted) {
+  //       setState(() {});
+  //     }
+  //     if (cameraController.value.hasError) {
+  //       CustomToast.failToast(
+  //           msg: 'Camera error ${cameraController.value.errorDescription}');
+  //     }
+  //   });
+  //
+  //   try {
+  //     await cameraController.initialize();
+  //     await Future.wait(<Future<Object?>>[
+  //       // The exposure mode is currently not supported on the web.
+  //       ...!kIsWeb
+  //           ? <Future<Object?>>[
+  //               cameraController.getMinExposureOffset().then(
+  //                   (double value) => _minAvailableExposureOffset = value),
+  //               cameraController
+  //                   .getMaxExposureOffset()
+  //                   .then((double value) => _maxAvailableExposureOffset = value)
+  //             ]
+  //           : <Future<Object?>>[],
+  //       cameraController
+  //           .getMaxZoomLevel()
+  //           .then((double value) => _maxAvailableZoom = value),
+  //       cameraController
+  //           .getMinZoomLevel()
+  //           .then((double value) => _minAvailableZoom = value),
+  //     ]);
+  //   } on CameraException catch (e) {
+  //     switch (e.code) {
+  //       case 'CameraAccessDenied':
+  //         CustomToast.failToast(msg: 'You have denied camera access.');
+  //         break;
+  //       case 'CameraAccessDeniedWithoutPrompt':
+  //         // iOS only
+  //         CustomToast.failToast(
+  //             msg: 'Please go to Settings app to enable camera access.');
+  //         break;
+  //       case 'CameraAccessRestricted':
+  //         // iOS only
+  //         CustomToast.failToast(msg: 'Camera access is restricted.');
+  //         break;
+  //       case 'AudioAccessDenied':
+  //         CustomToast.failToast(msg: 'You have denied audio access.');
+  //         break;
+  //       case 'AudioAccessDeniedWithoutPrompt':
+  //         // iOS only
+  //         CustomToast.failToast(
+  //             msg: 'Please go to Settings app to enable audio access.');
+  //         break;
+  //       case 'AudioAccessRestricted':
+  //         // iOS only
+  //         CustomToast.failToast(msg: 'Audio access is restricted.');
+  //         break;
+  //       default:
+  //         CustomToast.failToast(msg: "$e}");
+  //         break;
+  //     }
+  //   }
+  //
+  //   if (mounted) {
+  //     setState(() {});
+  //   }
+  // }
+  //
+  // void onVideoRecordButtonPressed() {
+  //   startVideoRecording().then((_) {
+  //     if (mounted) {
+  //       setState(() {});
+  //     }
+  //   });
+  // }
+  //
+  // Future<void> startVideoRecording() async {
+  //   final CameraController? cameraController = controller;
+  //
+  //   if (cameraController == null || !cameraController.value.isInitialized) {
+  //     CustomToast.failToast(msg: 'Error: select a camera first.');
+  //     return;
+  //   }
+  //
+  //   if (cameraController.value.isRecordingVideo) {
+  //     // A recording is already started, do nothing.
+  //     return;
+  //   }
+  //
+  //   try {
+  //     await cameraController.startVideoRecording();
+  //   } on CameraException catch (e) {
+  //     CustomToast.failToast(msg: "${e}");
+  //     return;
+  //   }
+  // }
+  //
+  // Future<XFile?> stopVideoRecording() async {
+  //   final CameraController? cameraController = controller;
+  //
+  //   if (cameraController == null || !cameraController.value.isRecordingVideo) {
+  //     return null;
+  //   }
+  //
+  //   try {
+  //     return cameraController.stopVideoRecording();
+  //   } on CameraException catch (e) {
+  //     CustomToast.failToast(msg: "${e}");
+  //     return null;
+  //   }
+  // }
+  //
+  // void onStopButtonPressed() {
+  //   stopVideoRecording().then((XFile? file) {
+  //     if (mounted) {
+  //       setState(() {});
+  //     }
+  //     if (file != null) {
+  //       CustomToast.failToast(msg: 'Video recorded to ${file.path}');
+  //       videoFile = file;
+  //       //_startVideoPlayer();
+  //     }
+  //   });
+  // }
 }

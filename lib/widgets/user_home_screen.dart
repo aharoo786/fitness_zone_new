@@ -48,6 +48,8 @@ class UserHomeScreen extends StatelessWidget {
             ),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.start,
+
               children: [
                 Container(
                   padding: EdgeInsets.symmetric(

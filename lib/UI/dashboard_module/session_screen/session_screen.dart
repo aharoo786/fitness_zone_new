@@ -1,3 +1,4 @@
+import 'package:camera/camera.dart';
 import 'package:fitnesss_app/UI/dashboard_module/call_screen/call_screen.dart';
 import 'package:fitnesss_app/data/controllers/auth_controller/auth_controller.dart';
 import 'package:fitnesss_app/data/controllers/home_controller/home_controller.dart';
@@ -90,11 +91,13 @@ class SessionScreen extends StatelessWidget {
                         await _handleCameraAndMic(Permission.camera);
                         await _handleCameraAndMic(Permission.microphone);
                         homeController.getAgoraToken(channelName.text);
+                        final cameras = await availableCameras();
+                        final firstCamera = cameras.first;
                         Get.to(() => CallScreen(
                               channelName: channelName.text,
                               token: homeController.generatedToken!,
                               userId:
-                                  Get.find<AuthController>().logInUser!.userId,
+                                  Get.find<AuthController>().logInUser!.userId, camera: firstCamera,
                             ));
                       }
                     }),
