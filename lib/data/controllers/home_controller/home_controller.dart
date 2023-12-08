@@ -3,7 +3,6 @@ import 'dart:io';
 import 'dart:typed_data';
 import 'dart:ui';
 
-
 import 'package:agora_token_service/agora_token_service.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
@@ -171,8 +170,6 @@ class HomeController extends GetxController implements GetxService {
     return token;
   }
 
-
-
   Future<void> uploadBytesToFirebaseStorage(String path) async {
     final storageReference = FirebaseStorage.instance.ref('videos');
 
@@ -181,6 +178,7 @@ class HomeController extends GetxController implements GetxService {
         storageReference.child('${DateTime.now().toIso8601String()}.mp4');
 
     // Upload the file to Firebase Storage
+    Get.dialog(const Center(child: CircularProgressIndicator(),));
     await fileReference.putFile(File(path)).then((p0) async {
       print("uploaded   ${p0.ref.getDownloadURL()}");
       String? url = await p0.ref.getDownloadURL();
@@ -188,7 +186,7 @@ class HomeController extends GetxController implements GetxService {
       await FirebaseFirestore.instance
           .collection("sessionVideos")
           .doc(DateTime.now().toIso8601String())
-          .set({"url": url});
+          .set({"url": url, "date": DateTime.now().toIso8601String()});
       Get.back();
     }).onError((error, stackTrace) {
       Get.back();

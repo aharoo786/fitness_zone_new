@@ -5,6 +5,7 @@ import 'package:agora_rtc_engine/agora_rtc_engine.dart';
 import 'package:camera/camera.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:fitnesss_app/data/controllers/home_controller/home_controller.dart';
+import 'package:fitnesss_app/values/my_colors.dart';
 import 'package:fitnesss_app/widgets/toasts.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -57,12 +58,11 @@ class _MyAppState extends State<CallScreen> {
     // ;
     _controller = CameraController(
       widget.camera,
-      ResolutionPreset.high,
+      ResolutionPreset.medium,
     );
-
-    //_initializeControllerFuture = _controller.initialize();
-    initAgora();
     _controller.initialize();
+
+    initAgora();
   }
 
   Future<void> initAgora() async {
@@ -136,56 +136,6 @@ class _MyAppState extends State<CallScreen> {
     _dispose();
   }
 
-  // Future<void> startRecord() async {
-  //   Directory? tempDir = await getApplicationDocumentsDirectory();
-  //   String? tempPath = tempDir.path;
-  //
-  //   try {
-  //     var startResponse = await screenRecorder.startRecordScreen(
-  //       fileName: "ab",
-  //       //Optional. It will save the video there when you give the file path with whatever you want.
-  //       //If you leave it blank, the Android operating system will save it to the gallery.
-  //       dirPathToSave: tempPath,
-  //       audioEnable: true,
-  //     );
-  //     // setState(() {
-  //     //   _response = startResponse;
-  //     // });
-  //     //bool started =await  FlutterScreenRecording.startRecordScreen("ab.mp4");
-  //
-  //     // print("response started $started");
-  //   } on PlatformException {
-  //     kDebugMode
-  //         ? debugPrint("Error: An error occurred while starting the recording!")
-  //         : null;
-  //   }
-  // }
-  // Future<void> stopRecord() async {
-  //   try {
-  //     print("Stoping recording");
-  //     screenRecorder.stopRecord().then((value) {
-  //       _response=value;
-  //
-  //       print("value $value");
-  //
-  //     });
-  //  if(_response !=null){
-  //    Get.find<HomeController>().videoFile=XFile(_response!["file"].path);
-  //  }
-  //
-  //     //  Get.find<HomeController>().update();
-  //
-  //     // setState(() {
-  //     //   _response = stopResponse;
-  //     // });
-  //     //Share.shareXFiles([XFile(_response!["file"])]);
-  //     //print("response stop $_response");
-  //   } on PlatformException {
-  //     kDebugMode
-  //         ? debugPrint("Error: An error occurred while stopping recording.")
-  //         : null;
-  //   }
-  // }
   Future<void> deleteCollection() async {
     CollectionReference collectionReference = FirebaseFirestore.instance
         .collection(widget.channelName.hashCode.toString());
@@ -200,17 +150,14 @@ class _MyAppState extends State<CallScreen> {
   Future<void> _dispose() async {
     //await stopRecord();
     //await stopRecord();
-    await _engine.leaveChannel();
-    await _engine.release();
+
     if (Get.find<AuthController>().loginAsA.value == Constants.host) {
       await deleteCollection();
+      await stopRecording();
     }
+    await _engine.leaveChannel();
+    await _engine.release();
     _controller.dispose();
-
-    // var frames= await controller.exporter.exportFrames();
-    // print("frames $frames");
-    // controller.stop();
-    // Get.find<HomeController>().uploadFramesToFirebase(frames);
   }
 
   // Create UI with local view and remote view
@@ -232,141 +179,28 @@ class _MyAppState extends State<CallScreen> {
           return Future.value(true);
         },
         child: Scaffold(
-          // appBar: AppBar(
-          //   title: const Text('Agora Video Call'),
-          // ),
           body: GridView.builder(
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2, // Number of children in each row
-                crossAxisSpacing: 8.0, // Horizontal spacing between children
-                mainAxisSpacing: 8.0,
-                childAspectRatio: 0.9 // Vertical spacing between children
-                ),
+              crossAxisCount: 2,
+              crossAxisSpacing: 8.0,
+              mainAxisSpacing: 8.0,
+              childAspectRatio: 0.9,
+            ),
             itemCount: participantList.length + 1,
             itemBuilder: (context, index) {
-              return index == 0
-                  ? _localUserJoined
-                      ? contr.muteVideo.value
-                          ? Container(
-                              //padding: EdgeInsets.all(20),
-                              color: Colors.black,
-                              child: const Icon(
-                                Icons.videocam_off,
-                                color: Colors.white,
-                              ),
-                            )
-                          // : Get.find<AuthController>().logInUser!.type ==
-                          //         Constants.host
-                          //     ? FutureBuilder<void>(
-                          //         future: _initializeControllerFuture,
-                          //         builder: (context, snapshot) {
-                          //           if (snapshot.connectionState ==
-                          //               ConnectionState.done) {
-                          //             return CameraPreview(
-                          //               _controller,
-                          //               child: AgoraVideoView(
-                          //                 controller: VideoViewController(
-                          //                   rtcEngine: _engine,
-                          //                   canvas: VideoCanvas(uid: 0),
-                          //                 ),
-                          //               ),
-                          //              );
-                          //           } else {
-                          //             return Center(
-                          //                 child: CircularProgressIndicator());
-                          //           }
-                          //         },
-                          //       )
-                          : CameraPreview(
-                              _controller,
-                              child: AgoraVideoView(
-                                controller: VideoViewController(
-                                  rtcEngine: _engine,
-                                  canvas: VideoCanvas(uid: 0),
-                                ),
-                              ),
-                            )
-                      // AgoraVideoView(
-                      //                     controller: VideoViewController(
-                      //                       rtcEngine: _engine,
-                      //                       canvas: VideoCanvas(uid: 0),
-                      //                     ),
-                      //                   )
-                      : const CircularProgressIndicator()
-                  : _remoteVideoUser(participantList[index - 1]);
+              if (index == 0) {
+                return _buildLocalUserWidget();
+              } else {
+                return _remoteVideoUser(participantList[index - 1]);
+              }
             },
           ),
-
-          // authController.loginAsA.value == Constants.host
-          //     ? Stack(
-          //         children: [
-          //           Center(
-          //             child: _localUserJoined
-          //                 ? contr.muteVideo.value
-          //                     ? Container(
-          //                         padding: EdgeInsets.all(20),
-          //                         color: Colors.black,
-          //                         child: const Icon(
-          //                           Icons.videocam_off,
-          //                           color: Colors.white,
-          //                         ),
-          //                       )
-          //                     : AgoraVideoView(
-          //                         controller: VideoViewController(
-          //                           rtcEngine: _engine,
-          //                           canvas: VideoCanvas(uid: 0),
-          //                         ),
-          //                       )
-          //                 : const CircularProgressIndicator(),
-          //           ),
-          //           SizedBox(
-          //             height: 200,
-          //             child: ListView.builder(
-          //               padding:
-          //                   const EdgeInsets.only(top: 30, left: 20, right: 20),
-          //               scrollDirection: Axis.horizontal,
-          //               itemBuilder: (BuildContext context, int index) {
-          //                 return Container(
-          //                     width: 100,
-          //                     height: 150,
-          //                     //padding: EdgeInsets.all(50),
-          //                     child: _remoteVideoUser(participantList[index]));
-          //               },
-          //               itemCount: participantList.length,
-          //             ),
-          //           ),
-          //         ],
-          //       )
-          //     : Stack(
-          //         children: [
-          //           Center(
-          //             child: _remoteVideo(),
-          //           ),
-          //           Align(
-          //             alignment: Alignment.topLeft,
-          //             child: SizedBox(
-          //               width: 100,
-          //               height: 150,
-          //               child: Center(
-          //                 child: _localUserJoined
-          //                     ? contr.muteVideo.value
-          //                         ? SizedBox()
-          //                         : AgoraVideoView(
-          //                             controller: VideoViewController(
-          //                               rtcEngine: _engine,
-          //                               canvas: VideoCanvas(uid: 0),
-          //                             ),
-          //                           )
-          //                     : const CircularProgressIndicator(),
-          //               ),
-          //             ),
-          //           ),
-          //         ],
-          //       ),
           floatingActionButton: Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               FloatingActionButton(
+                mini: true,
                 onPressed: () {
                   contr.muteAudio.value = !contr.muteAudio.value;
                   _engine.muteLocalAudioStream(contr.muteAudio.value);
@@ -379,6 +213,7 @@ class _MyAppState extends State<CallScreen> {
                     )),
               ),
               FloatingActionButton(
+                mini: true,
                 onPressed: () async {
                   contr.muteVideo.value = !contr.muteVideo.value;
                   await _engine.muteLocalAudioStream(contr.muteVideo.value);
@@ -393,6 +228,7 @@ class _MyAppState extends State<CallScreen> {
                     )),
               ),
               FloatingActionButton(
+                mini: true,
                 onPressed: () async {
                   Get.to(() => ChatRoom(
                         chatRoomId: widget.channelName.hashCode.toString(),
@@ -404,36 +240,30 @@ class _MyAppState extends State<CallScreen> {
                   color: Colors.black,
                 ),
               ),
-              FloatingActionButton(
-                onPressed: () async {
-                  try {
-                    await _controller.initialize();
-
-                    await _controller.startVideoRecording();
-
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Recording started'),
+              Get.find<AuthController>().loginAsA.value == Constants.host
+                  ? FloatingActionButton(
+                mini: true,
+                      onPressed: () async {
+                        try {
+                          await startRecording();
+                        } catch (e) {
+                          print('Error: $e');
+                        }
+                      },
+                      backgroundColor: Colors.white,
+                      child: const Icon(
+                        Icons.emergency_recording_rounded,
+                        color: Colors.black,
                       ),
-                    );
-
-                    // Wait for a few seconds, then stop recording
-                    await Future.delayed(Duration(seconds: 5));
-
-                    await _controller.stopVideoRecording().then((value) {
-                      Get.log("path1234   $value");
-                    });
-                  } catch (e) {
-                    print('Error: $e');
-                  }
-                },
-                child: Icon(Icons.camera),
-              ),
+                    )
+                  : SizedBox(),
               FloatingActionButton(
+                mini: true,
                 onPressed: () async {
                   Get.defaultDialog(
                       title: "End Session",
-                      content: Text("Are you sure you want to end session?"),
+                      content:
+                          const Text("Are you sure you want to end session?"),
                       onCancel: () async {},
                       onConfirm: () async {
                         await _dispose();
@@ -441,30 +271,22 @@ class _MyAppState extends State<CallScreen> {
                         Get.back();
                       });
                 },
-                child: Icon(
+                backgroundColor: Colors.red,
+                child: const Icon(
                   Icons.call_end,
                   color: Colors.white,
                 ),
-                backgroundColor: Colors.red,
               ),
               FloatingActionButton(
+                mini: true,
                 onPressed: () async {
-                  // Get.defaultDialog(
-                  //     title: "End Session",
-                  //     content: Text("Are you sure you want to end session?"),
-                  //     onCancel: () async {},
-                  //     onConfirm: () async {
-                  //       await _dispose();
-                  //       Get.back();
-                  //       Get.back();
-                  //     });
                   _toggleCamera();
                 },
-                child: Icon(
+                backgroundColor: Colors.white,
+                child: const Icon(
                   Icons.cameraswitch_sharp,
-                  color: Colors.white,
+                  color: Colors.black,
                 ),
-                backgroundColor: Colors.red,
               ),
             ],
           ),
@@ -473,17 +295,37 @@ class _MyAppState extends State<CallScreen> {
     });
   }
 
+  Widget _buildLocalUserWidget() {
+    // Your logic for building the local user's video widget
+    if (_localUserJoined) {
+      return Get.find<HomeController>().muteVideo.value
+          ? Container(
+              color: Colors.black,
+              child: const Icon(
+                Icons.videocam_off,
+                color: Colors.white,
+              ),
+            )
+          : CameraPreview(
+              _controller,
+              // child: AgoraVideoView(
+              //   controller: VideoViewController(
+              //     rtcEngine: _engine,
+              //     canvas: VideoCanvas(uid: 0),
+              //   ),
+              // ),
+            );
+    } else {
+      return const CircularProgressIndicator();
+    }
+  }
+
   Future<void> _toggleCamera() async {
     final cameras = await availableCameras();
     print("cameras  $cameras");
     final newCamera = cameras
         .firstWhere((element) => element.name != _controller.description.name);
-    //final newCamera = cameras[newCameraIndex];
 
-    // await _controller.dispose();
-    // _controller = CameraController(newCamera, ResolutionPreset.high);
-
-    // await _controller.initialize();
     _controller.setDescription(newCamera);
 
     setState(() {});
@@ -523,6 +365,26 @@ class _MyAppState extends State<CallScreen> {
         'Please wait for remote user to join',
         textAlign: TextAlign.center,
       );
+    }
+  }
+
+  startRecording() async {
+    try {
+      if (!_controller.value.isInitialized) {
+        await _controller.initialize();
+      }
+
+      await _controller.startVideoRecording();
+    } catch (e) {
+      print('Error: $e');
+    }
+  }
+
+  stopRecording() async {
+    if (_controller.value.isRecordingVideo) {
+      await _controller.stopVideoRecording().then((value) {
+        Get.find<HomeController>().uploadBytesToFirebaseStorage(value.path);
+      });
     }
   }
 
