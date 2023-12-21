@@ -16,6 +16,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:get/get_core/src/get_main.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:wakelock_plus/wakelock_plus.dart';
 
 import '../../../data/controllers/auth_controller/auth_controller.dart';
 import '../../../values/constants.dart';
@@ -61,6 +62,7 @@ class _MyAppState extends State<CallScreen> {
     Get.find<HomeController>().participantList = [];
     // Get.find<HomeController>().listenForDataChanges();
     initAgora();
+    WakelockPlus.enable();
     // _controller = CameraController(
     //   widget.camera,
     //   ResolutionPreset.medium,
@@ -179,6 +181,7 @@ class _MyAppState extends State<CallScreen> {
     }
     await _engine.leaveChannel();
     await _engine.release();
+    WakelockPlus.enable();
     //_controller.dispose();
   }
 
