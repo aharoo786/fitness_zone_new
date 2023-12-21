@@ -25,6 +25,7 @@ class Constants {
   static String user = "User";
   static String login = "login";
   static String weeklyReports = "weeklyReports";
+  static String sessionVideos = "sessionVideos";
 
 
   /// Firebase collections and document collection

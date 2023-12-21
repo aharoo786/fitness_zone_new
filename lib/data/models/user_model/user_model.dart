@@ -27,22 +27,23 @@ class UserModel {
 
   String userMobileNumber;
   String memberDesignation;
+  int remoteId;
 
-  UserModel({
-    required this.fullName,
-    required this.packageStatus,
-    required this.password,
-    required this.recording,
-    required this.screenShot,
-    required this.subscriptionDuration,
-    required this.type,
-    required this.userCountryCode,
-    required this.userId,
-    required this.userMobileNumber,
-    required this.memberDesignation,
-    required this.startDate,
-    required this.expireDate
-  });
+  UserModel(
+      {required this.fullName,
+      required this.packageStatus,
+      required this.password,
+      required this.recording,
+      required this.screenShot,
+      required this.subscriptionDuration,
+      required this.type,
+      required this.userCountryCode,
+      required this.userId,
+      required this.userMobileNumber,
+      required this.memberDesignation,
+      required this.startDate,
+      required this.expireDate,
+      this.remoteId = 0});
 
   factory UserModel.fromJson(Map<String, dynamic> json) => UserModel(
       fullName: json["fullName"],
@@ -57,7 +58,8 @@ class UserModel {
       userMobileNumber: json["userMobileNumber"],
       startDate: json["startDate"],
       expireDate: json["expireDate"],
-      memberDesignation: json["memberDesignation"]);
+      memberDesignation: json["memberDesignation"],
+      remoteId: json["remoteId"] ?? 0);
 
   Map<String, dynamic> toJson() => {
         "fullName": fullName,
@@ -72,6 +74,7 @@ class UserModel {
         "userMobileNumber": userMobileNumber,
         "expireDate": expireDate,
         "startDate": startDate,
-        "memberDesignation": memberDesignation
+        "memberDesignation": memberDesignation,
+        "remoteId": 0
       };
 }

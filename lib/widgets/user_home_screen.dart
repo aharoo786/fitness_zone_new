@@ -85,7 +85,7 @@ class UserHomeScreen extends StatelessWidget {
                           ),
                         ],
                       ),
-                      Text("${DateTime.parse(authController.logInUser!.expireDate).difference(DateTime.now()).inDays}",
+                      Text("${DateTime.parse(authController.logInUser!.expireDate).difference(DateTime.now()).inDays+1}",
                           style: textTheme.bodyMedium!.copyWith(
                               fontWeight: FontWeight.w500,
                               fontSize: 40.sp)),

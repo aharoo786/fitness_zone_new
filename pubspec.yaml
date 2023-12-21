@@ -51,14 +51,12 @@ dependencies:
   intl:
   share_plus: ^7.2.1
   device_info_plus: ^9.1.0
-  agora_rtc_engine: ^6.2.2
+  agora_rtc_engine: ^6.2.6
   agora_token_service: ^0.1.2
-#  screen_recorder: ^0.2.0
   firebase_storage: ^11.5.2
-#  video_player: ^2.8.1
-#  ed_screen_recorder: ^0.0.13
+  video_player: ^2.7.2
   screen_protector: ^1.4.1
-  camera: ^0.10.5+6
+#  camera: ^0.10.5+6
 
 
 dev_dependencies:

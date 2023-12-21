@@ -5,6 +5,7 @@ import 'dart:ui';
 
 import 'package:agora_token_service/agora_token_service.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:fitnesss_app/data/models/user_model/user_model.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
@@ -178,7 +179,9 @@ class HomeController extends GetxController implements GetxService {
         storageReference.child('${DateTime.now().toIso8601String()}.mp4');
 
     // Upload the file to Firebase Storage
-    Get.dialog(const Center(child: CircularProgressIndicator(),));
+    Get.dialog(const Center(
+      child: CircularProgressIndicator(),
+    ));
     await fileReference.putFile(File(path)).then((p0) async {
       print("uploaded   ${p0.ref.getDownloadURL()}");
       String? url = await p0.ref.getDownloadURL();
@@ -187,12 +190,100 @@ class HomeController extends GetxController implements GetxService {
           .collection("sessionVideos")
           .doc(DateTime.now().toIso8601String())
           .set({"url": url, "date": DateTime.now().toIso8601String()});
+
       Get.back();
+      CustomToast.successToast(msg: "Uploaded Successfully");
+      videoFile = null;
+      update();
     }).onError((error, stackTrace) {
       Get.back();
       CustomToast.failToast(msg: "Upload fail,please try again");
     });
 
     print('File uploaded to Firebase Storage!');
+  }
+
+  updateUserRemoteId(int id) async {
+    await FirebaseFirestore.instance
+        .collection(Constants.customers)
+        .doc(Get.find<AuthController>().logInUser!.userId)
+        .update({"remoteId": id});
+  }
+
+  void listenForDataChanges() {
+    CollectionReference collectionReference =
+        FirebaseFirestore.instance.collection(Constants.customers);
+
+    collectionReference.snapshots().listen((QuerySnapshot querySnapshot) {
+      if (querySnapshot.docs.isNotEmpty) {
+        // Process the live data updates here
+        List<DocumentSnapshot> documents = querySnapshot.docs;
+
+        for (var document in documents) {
+          dynamic data = document.data() as Map<String, dynamic>;
+
+          // Compare valueToCompare with some other value
+
+          for (var element in participantList) {
+            print("in the if");
+            if (data["remoteId"] == element["id"]) {
+              print("in the if ");
+              element["name"] == document["fullName"];
+              update();
+              break;
+            } else {
+              // Do something else
+            }
+          }
+          Get.log("print list of $participantList");
+        }
+      } else {
+        // Handle the case when there is no data
+        print('No documents found.');
+      }
+    }, onError: (error) {
+      // Handle errors
+      print('Error listening for data changes: $error');
+    });
+  }
+
+  QuerySnapshot? snapshot;
+  getUsersCollection() async {
+    snapshot =
+        await FirebaseFirestore.instance.collection(Constants.customers).get();
+
+    print("snapshot $snapshot");
+  }
+
+  List<Map<String, dynamic>> participantList = [];
+  Future<String> getUserNameUsingId(int id) async {
+    String name = "Unknown";
+
+    // Use try-catch to handle errors
+    try {
+      var querySnapshot = await FirebaseFirestore.instance
+          .collection(Constants.customers)
+          .where("remoteId", isEqualTo: id)
+          .get();
+
+      print("querySnapshot: $querySnapshot");
+
+      if (querySnapshot.docs.isNotEmpty) {
+        // Access the first document in the result
+        var documentSnapshot = querySnapshot.docs.first;
+
+        // Access the data within the document
+        var data = documentSnapshot.data();
+
+        var userModel = UserModel.fromJson(data);
+        print("remote id $id    ...local  ${userModel.remoteId}");
+        name = userModel.fullName;
+      }
+    } catch (error) {
+      print("Error: $error");
+      // Handle errors as needed
+    }
+
+    return name;
   }
 }

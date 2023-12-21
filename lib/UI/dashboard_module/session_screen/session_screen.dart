@@ -1,12 +1,14 @@
-import 'package:camera/camera.dart';
+// import 'package:camera/camera.dart';
 import 'package:fitnesss_app/UI/dashboard_module/call_screen/call_screen.dart';
 import 'package:fitnesss_app/data/controllers/auth_controller/auth_controller.dart';
 import 'package:fitnesss_app/data/controllers/home_controller/home_controller.dart';
+import 'package:fitnesss_app/helper/permissions.dart';
 import 'package:fitnesss_app/values/my_imgs.dart';
 import 'package:fitnesss_app/widgets/custom_button.dart';
 import 'package:fitnesss_app/widgets/toasts.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:share_plus/share_plus.dart';
 
@@ -91,30 +93,32 @@ class SessionScreen extends StatelessWidget {
                         await _handleCameraAndMic(Permission.camera);
                         await _handleCameraAndMic(Permission.microphone);
                         homeController.getAgoraToken(channelName.text);
-                        final cameras = await availableCameras();
-                        final firstCamera = cameras.first;
+                        //final cameras = await availableCameras();
+                       // final firstCamera = cameras.first;
                         Get.to(() => CallScreen(
                               channelName: channelName.text,
                               token: homeController.generatedToken!,
                               userId:
-                                  Get.find<AuthController>().logInUser!.userId, camera: firstCamera,
+                                  Get.find<AuthController>().logInUser!.userId,
+                              // camera: firstCamera,
                             ));
                       }
                     }),
                 SizedBox(
                   height: 20.h,
                 ),
-
-                GetBuilder<HomeController>(builder: (c) {
-                  return homeController.videoFile == null
-                      ? SizedBox()
-                      : CustomButton(
-                          text: "Upload session video",
-                          onPressed: () async {
-                            homeController.uploadBytesToFirebaseStorage(
-                                homeController.videoFile!.path);
-                          });
-                })
+                Get.find<AuthController>().logInUser!.type == Constants.host
+                    ? CustomButton(
+                        text: "Upload session video",
+                        onPressed: () async {
+                          _pickVideo(context);
+                        })
+                    : SizedBox()
+                // GetBuilder<HomeController>(builder: (c) {
+                //   return homeController.videoFile == null
+                //       ? SizedBox()
+                //       :
+                // })
               ],
             ),
           ),
@@ -126,5 +130,22 @@ class SessionScreen extends StatelessWidget {
   Future<void> _handleCameraAndMic(Permission permission) async {
     final status = await permission.request();
     print(status);
+  }
+}
+
+Future<void> _pickVideo(BuildContext context) async {
+  try {
+    PermissionOfPhotos().getFromGallery(context).then((value) async {
+      if (value) {
+        XFile? pickedVideo =
+            await ImagePicker().pickVideo(source: ImageSource.gallery);
+        if (pickedVideo != null) {
+          Get.find<HomeController>()
+              .uploadBytesToFirebaseStorage(pickedVideo.path);
+        }
+      }
+    });
+  } catch (e) {
+    print('Error picking video: $e');
   }
 }
